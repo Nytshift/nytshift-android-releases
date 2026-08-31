@@ -32,8 +32,8 @@ Before handoff upload, the job deletes the private downloaded archives, full evi
 
 The contract records the corrected private validator as:
 
-- commit `681a1329de80fb54996bce54d814ec425a721a4c`;
+- commit `30b1555740dbfd3c2f28cd79d0ccef8376ae72b5` (source PR #6 head);
 - path `stage_signed_preview_release.py`;
-- SHA-256 `6ce828bbb2ff8203f73314397f3a7d4d727381f460c84b5551f3f9df45ce365a`.
+- SHA-256 `2a235e3b998ec4b0a0fb475cad9bc0dd8592e6ef688e6ced752e1e21c7f6c0f9`.
 
-The corresponding public boundary explicitly verifies the audited SDK inventory, rejects symlinks, passes `--Werr` to `apksigner`, decodes and validates the signed APK’s final manifest, emits source-run/evidence provenance, and returns the validated signer digest from the signature function. Static AST and functional tests guard the corrected return flow so the prior misplaced-return failure cannot recur silently.
+The corresponding public boundary requires the validator's exact 209-test JVM evidence count, verifies the audited SDK inventory, rejects symlinks, passes `--Werr` to `apksigner`, decodes and validates the signed APK’s final manifest, emits source-run/evidence provenance, and returns the validated signer digest from the signature function. Static AST and functional tests guard both the reviewed count and corrected return flow so stale source evidence or the prior misplaced-return failure cannot recur silently.

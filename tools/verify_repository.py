@@ -17,10 +17,10 @@ ROOT = Path(__file__).resolve().parents[1]
 POLICY_PATH = ROOT / "config/release-policy.json"
 WORKFLOW_PATH = ROOT / ".github/workflows/publish-paper-preview.yml"
 BOUNDARY_PATH = ROOT / "tools/signing_boundary_reference.py"
-BOUNDARY_SHA256 = "ccaff059680da9a5d8011fd65bc019ac78f20f4966ee779e220366fb599c235e"
-REVIEWED_SOURCE_COMMIT = "681a1329de80fb54996bce54d814ec425a721a4c"
+BOUNDARY_SHA256 = "01d81c61d4b886f45e7ed748aa9e1fa65057b0477bd85b001bf90340e5b56988"
+REVIEWED_SOURCE_COMMIT = "30b1555740dbfd3c2f28cd79d0ccef8376ae72b5"
 REVIEWED_SOURCE_VALIDATOR_SHA256 = (
-    "6ce828bbb2ff8203f73314397f3a7d4d727381f460c84b5551f3f9df45ce365a"
+    "2a235e3b998ec4b0a0fb475cad9bc0dd8592e6ef688e6ced752e1e21c7f6c0f9"
 )
 ACTION_PINS = {
     "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",

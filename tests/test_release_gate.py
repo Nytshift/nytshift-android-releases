@@ -54,7 +54,13 @@ def evidence() -> tuple[dict, dict]:
             "executionAuthority": "none",
         },
         "verification": {
-            "jvmTests": {"suites": 12, "tests": 198, "failures": 0, "errors": 0, "skipped": 0}
+            "jvmTests": {
+                "suites": 12,
+                "tests": gate.EXPECTED_JVM_TESTS,
+                "failures": 0,
+                "errors": 0,
+                "skipped": 0,
+            }
         },
         "versionSource": {"expected": {"versionCode": 42, "versionName": "1.2.3"}},
         "variants": {
@@ -140,6 +146,7 @@ def signer_output(certificate: str = CERTIFICATE) -> str:
 
 class EvidenceTests(unittest.TestCase):
     def test_exact_green_evidence_accepts_retained_device_diagnostics(self) -> None:
+        self.assertEqual(gate.EXPECTED_JVM_TESTS, 209)
         release, device = evidence()
         version_name, version_code, _, _ = gate.validate_evidence_summaries(release, device, COMMIT)
         self.assertEqual((version_name, version_code), ("1.2.3-staging", 42))
@@ -147,6 +154,12 @@ class EvidenceTests(unittest.TestCase):
     def test_device_image_drift_fails(self) -> None:
         release, device = evidence()
         device["device"]["image"] = "default;x86_64"
+        with self.assertRaises(gate.ReleaseGateError):
+            gate.validate_evidence_summaries(release, device, COMMIT)
+
+    def test_stale_jvm_test_count_fails(self) -> None:
+        release, device = evidence()
+        release["verification"]["jvmTests"]["tests"] = 198
         with self.assertRaises(gate.ReleaseGateError):
             gate.validate_evidence_summaries(release, device, COMMIT)
 

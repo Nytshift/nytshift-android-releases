@@ -20,7 +20,7 @@ The manual workflow is designed as five fresh GitHub-hosted jobs:
 4. A fresh job with only `contents: write` publishes all five assets to a draft and then publishes the prerelease.
 5. A fresh read-only job checks immutable state, public download metadata, `gh release verify`, and `gh release verify-asset` for every asset.
 
-The private source contract is fixed to `Nytshift/nytshift-android`, branch `main`, workflow `android-ci`, and an exact successful push run for the requested 40-character commit. The reviewed source validator correction is pinned at commit `681a1329de80fb54996bce54d814ec425a721a4c`, file `stage_signed_preview_release.py`, SHA-256 `6ce828bbb2ff8203f73314397f3a7d4d727381f460c84b5551f3f9df45ce365a`.
+The private source contract is fixed to `Nytshift/nytshift-android`, branch `main`, workflow `android-ci`, and an exact successful push run for the requested 40-character commit. The reviewed source validator is pinned at commit `30b1555740dbfd3c2f28cd79d0ccef8376ae72b5`, file `stage_signed_preview_release.py`, SHA-256 `2a235e3b998ec4b0a0fb475cad9bc0dd8592e6ef688e6ced752e1e21c7f6c0f9`; both public verification layers require its exact 209-test JVM evidence count.
 
 ## Current setup status
 

@@ -31,6 +31,7 @@ SOURCE_WORKFLOW = "android-ci"
 SOURCE_WORKFLOW_PATH = ".github/workflows/ci.yml"
 PUBLIC_REPOSITORY = "Nytshift/nytshift-android-releases"
 PACKAGE = "xyz.nytshift.app.staging"
+EXPECTED_JVM_TESTS = 209
 ANDROID = "{http://schemas.android.com/apk/res/android}"
 EXPECTED_PERMISSIONS = {
     "android.permission.ACCESS_NETWORK_STATE",
@@ -316,7 +317,7 @@ def validate_evidence(
         or set(tests) != {"suites", "tests", "failures", "errors", "skipped"}
         or not isinstance(tests.get("suites"), int)
         or tests["suites"] < 1
-        or tests.get("tests") != 198
+        or tests.get("tests") != EXPECTED_JVM_TESTS
         or any(tests.get(field) != 0 for field in ("failures", "errors", "skipped"))
     ):
         raise BoundaryError("release JVM evidence is incomplete or failed")

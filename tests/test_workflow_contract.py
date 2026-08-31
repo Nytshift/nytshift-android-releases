@@ -83,6 +83,20 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(reviewed["commit"], verify.REVIEWED_SOURCE_COMMIT)
         self.assertEqual(reviewed["sha256"], verify.REVIEWED_SOURCE_VALIDATOR_SHA256)
 
+    def test_inline_boundary_requires_reviewed_jvm_test_count(self) -> None:
+        boundary_source = verify.BOUNDARY_PATH.read_text(encoding="utf-8")
+        tree = ast.parse(boundary_source)
+        assignments = {
+            target.id: ast.literal_eval(node.value)
+            for node in tree.body
+            if isinstance(node, ast.Assign)
+            for target in node.targets
+            if isinstance(target, ast.Name) and target.id == "EXPECTED_JVM_TESTS"
+        }
+        self.assertEqual(assignments, {"EXPECTED_JVM_TESTS": 209})
+        self.assertIn('tests.get("tests") != EXPECTED_JVM_TESTS', boundary_source)
+        self.assertNotIn('tests.get("tests") != 198', boundary_source)
+
     def test_postpublish_verifies_release_and_every_asset(self) -> None:
         post = verify.job_block(self.workflow, "postpublish")
         self.assertIn("gh release verify ", post)
