@@ -36,4 +36,6 @@ The contract records the corrected private validator as:
 - path `stage_signed_preview_release.py`;
 - SHA-256 `2a235e3b998ec4b0a0fb475cad9bc0dd8592e6ef688e6ced752e1e21c7f6c0f9`.
 
+**Merge blocker:** this public change must not merge while that commit exists only as the source PR #6 head. After source PR #6 lands, re-read `stage_signed_preview_release.py` from the final commit on source `main`, recompute its SHA-256, and confirm both the final source-main commit and file digest here. If the source merge strategy changes the commit or content, update this pin before merging the public change.
+
 The corresponding public boundary requires the validator's exact 209-test JVM evidence count, verifies the audited SDK inventory, rejects symlinks, passes `--Werr` to `apksigner`, decodes and validates the signed APK’s final manifest, emits source-run/evidence provenance, and returns the validated signer digest from the signature function. Static AST and functional tests guard both the reviewed count and corrected return flow so stale source evidence or the prior misplaced-return failure cannot recur silently.
