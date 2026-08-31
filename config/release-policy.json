@@ -1,0 +1,21 @@
+{
+  "android": {
+    "buildVariant": "stagingRelease",
+    "channel": "PAPER",
+    "packageName": "xyz.nytshift.app.staging"
+  },
+  "publicRepository": "Nytshift/nytshift-android-releases",
+  "source": {
+    "branch": "main",
+    "deviceApiLevel": 36,
+    "deviceImage": "google_apis;x86_64",
+    "repository": "Nytshift/nytshift-android",
+    "workflowName": "android-ci",
+    "workflowPath": ".github/workflows/ci.yml",
+    "reviewedValidator": {
+      "commit": "681a1329de80fb54996bce54d814ec425a721a4c",
+      "path": "stage_signed_preview_release.py",
+      "sha256": "6ce828bbb2ff8203f73314397f3a7d4d727381f460c84b5551f3f9df45ce365a"
+    }
+  }
+}
