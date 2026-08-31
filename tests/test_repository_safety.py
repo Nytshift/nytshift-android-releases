@@ -49,7 +49,7 @@ class RepositorySafetyTests(unittest.TestCase):
             "android-paper-preview-signing",
             "required reviewer",
             "prevent self-review",
-            "ruleset or branch-protection",
+            "Protect `main`",
             "repository-verify",
             "SOURCE_REPO_READ_TOKEN",
             "Actions: read",
@@ -62,7 +62,10 @@ class RepositorySafetyTests(unittest.TestCase):
             "Administration: read",
             "staging key custodian",
             "offline encrypted backup",
-            "has not performed or approved",
+            "Current decision: NO-GO for dispatch",
+            "zero approving reviews",
+            "Blocked / absent",
+            "No release workflow has been dispatched",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, setup)

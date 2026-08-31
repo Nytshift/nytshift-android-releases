@@ -22,7 +22,13 @@ The manual workflow is designed as five fresh GitHub-hosted jobs:
 
 The private source contract is fixed to `Nytshift/nytshift-android`, branch `main`, workflow `android-ci`, and an exact successful push run for the requested 40-character commit. The reviewed source validator correction is pinned at commit `681a1329de80fb54996bce54d814ec425a721a4c`, file `stage_signed_preview_release.py`, SHA-256 `6ce828bbb2ff8203f73314397f3a7d4d727381f460c84b5551f3f9df45ce365a`.
 
-Nothing here creates a GitHub repository, configures settings, approves an environment, publishes a release, or pushes a commit. Those are explicit owner actions described in [Owner setup](docs/OWNER_SETUP.md). See [Security model](docs/SECURITY_MODEL.md), [source contract](docs/SOURCE_CONTRACT.md), and [release process](docs/RELEASE_PROCESS.md) before using the workflow.
+## Current setup status
+
+The public repository now exists at [`Nytshift/nytshift-android-releases`](https://github.com/Nytshift/nytshift-android-releases), with `main` as its default branch. As of 2026-08-31, the owner has configured immutable releases, default read-only Actions permissions, SHA-pinned allowlisting for the three exact action revisions used here, and protected `main`: pull requests and the strict `repository-verify` check are required; linear history, administrator enforcement, and conversation resolution are enabled; force pushes and branch deletion are disabled.
+
+This is **not release-ready**. Branch protection currently requires zero approving reviews because no independent reviewer identity is known. More importantly, the signing environment has intentionally not been created without its independent required reviewer. The environment secrets, independent certificate-fingerprint variable, read-only policy token, staging-key custody/recovery decisions, and first reviewed dispatch all remain blockers. No signing approval, workflow release run, APK, tag, or release is claimed.
+
+The exact completed and blocked owner actions are tracked in [Owner setup](docs/OWNER_SETUP.md). See [Security model](docs/SECURITY_MODEL.md), [source contract](docs/SOURCE_CONTRACT.md), and [release process](docs/RELEASE_PROCESS.md) before using the workflow.
 
 Local verification:
 
