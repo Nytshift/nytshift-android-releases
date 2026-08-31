@@ -30,6 +30,7 @@ EXPECTED_SOURCE_WORKFLOW_PATH = ".github/workflows/ci.yml"
 EXPECTED_PACKAGE = "xyz.nytshift.app.staging"
 EXPECTED_VARIANT = "stagingRelease"
 EXPECTED_CHANNEL = "PAPER"
+EXPECTED_JVM_TESTS = 209
 EXPECTED_DEVICE_API = 36
 EXPECTED_DEVICE_IMAGE = "google_apis;x86_64"
 SIGNED_APK_NAME = "nytshift-staging-release-signed.apk"
@@ -221,7 +222,7 @@ def _green_test_summary(value: Any, *, step_outcome: bool = False) -> bool:
         return False
     if step_outcome and (value.get("stepOutcome") != "success" or value.get("collectionError") is not None):
         return False
-    expected_tests = 23 if step_outcome else 198
+    expected_tests = 23 if step_outcome else EXPECTED_JVM_TESTS
     return (
         isinstance(value.get("suites"), int)
         and value["suites"] > 0

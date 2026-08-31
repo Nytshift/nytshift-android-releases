@@ -13,9 +13,9 @@
     "workflowName": "android-ci",
     "workflowPath": ".github/workflows/ci.yml",
     "reviewedValidator": {
-      "commit": "681a1329de80fb54996bce54d814ec425a721a4c",
+      "commit": "30b1555740dbfd3c2f28cd79d0ccef8376ae72b5",
       "path": "stage_signed_preview_release.py",
-      "sha256": "6ce828bbb2ff8203f73314397f3a7d4d727381f460c84b5551f3f9df45ce365a"
+      "sha256": "2a235e3b998ec4b0a0fb475cad9bc0dd8592e6ef688e6ced752e1e21c7f6c0f9"
     }
   }
 }
