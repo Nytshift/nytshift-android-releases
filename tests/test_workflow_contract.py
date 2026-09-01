@@ -82,13 +82,13 @@ class WorkflowContractTests(unittest.TestCase):
         reviewed = policy["source"]["reviewedValidator"]
         self.assertEqual(reviewed["commit"], verify.REVIEWED_SOURCE_COMMIT)
         self.assertEqual(reviewed["sha256"], verify.REVIEWED_SOURCE_VALIDATOR_SHA256)
-        self.assertEqual(reviewed["commit"], "158a69fb7728fcefb605c401c1a25fd61bbf2fed")
+        self.assertEqual(reviewed["commit"], "34b977afc7435d7baccaf093581c4b6ed20d2587")
         self.assertEqual(reviewed["sha256"], "7e1193b38d8588bbc9f7e2c1c5806008d4d18e3b3261deead27accdae53e4475")
 
     def test_inline_boundary_requires_exact_source_and_evidence_inventory(self) -> None:
         source = verify.BOUNDARY_PATH.read_text(encoding="utf-8")
         for required in (
-            'SOURCE_COMMIT = "158a69fb7728fcefb605c401c1a25fd61bbf2fed"',
+            'SOURCE_COMMIT = "34b977afc7435d7baccaf093581c4b6ed20d2587"',
             "EXPECTED_JVM_TESTS = 338",
             "EXPECTED_ANDROID_TESTS = 39",
             "EXPECTED_SCREENSHOT_REFERENCES = 46",

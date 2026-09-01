@@ -6,7 +6,7 @@ The signing boundary accepts one exact source:
 - branch: `main`;
 - event: `push`;
 - workflow name/path: `android-ci` / `.github/workflows/ci.yml`;
-- caller input: fixed commit `158a69fb7728fcefb605c401c1a25fd61bbf2fed` and a numeric run ID;
+- caller input: fixed commit `34b977afc7435d7baccaf093581c4b6ed20d2587` and a numeric run ID;
 - run state: completed/success with the same `head_sha` and source repository;
 - jobs: exactly successful `verify` and `device` jobs for that commit;
 - artifacts: exactly the release and device evidence artifacts named with that commit.
@@ -33,7 +33,7 @@ Before handoff upload, the job deletes the private downloaded archives, full evi
 
 The contract records the corrected private validator as:
 
-- commit `158a69fb7728fcefb605c401c1a25fd61bbf2fed`;
+- commit `34b977afc7435d7baccaf093581c4b6ed20d2587`;
 - path `stage_signed_preview_release.py`;
 - SHA-256 `7e1193b38d8588bbc9f7e2c1c5806008d4d18e3b3261deead27accdae53e4475`.
 

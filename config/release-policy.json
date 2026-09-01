@@ -14,12 +14,12 @@
       "jvmTests": 338,
       "reviewedScreenshotReferences": 46
     },
-    "releaseCommit": "158a69fb7728fcefb605c401c1a25fd61bbf2fed",
+    "releaseCommit": "34b977afc7435d7baccaf093581c4b6ed20d2587",
     "repository": "Nytshift/nytshift-android",
     "workflowName": "android-ci",
     "workflowPath": ".github/workflows/ci.yml",
     "reviewedValidator": {
-      "commit": "158a69fb7728fcefb605c401c1a25fd61bbf2fed",
+      "commit": "34b977afc7435d7baccaf093581c4b6ed20d2587",
       "path": "stage_signed_preview_release.py",
       "sha256": "7e1193b38d8588bbc9f7e2c1c5806008d4d18e3b3261deead27accdae53e4475"
     }
