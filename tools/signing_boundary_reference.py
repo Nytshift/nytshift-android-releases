@@ -29,7 +29,7 @@ SOURCE_REPOSITORY = "Nytshift/nytshift-android"
 SOURCE_BRANCH = "main"
 SOURCE_WORKFLOW = "android-ci"
 SOURCE_WORKFLOW_PATH = ".github/workflows/ci.yml"
-SOURCE_COMMIT = "34b977afc7435d7baccaf093581c4b6ed20d2587"
+SOURCE_COMMIT = "61f837f304b3942f65cb3d99f1a4236bcd420e41"
 PUBLIC_REPOSITORY = "Nytshift/nytshift-android-releases"
 PACKAGE = "xyz.nytshift.app.staging"
 EXPECTED_JVM_TESTS = 338
@@ -609,12 +609,13 @@ def validate_source_run(token: str, commit: str, run_id: int) -> tuple[dict[str,
         f"/repos/{SOURCE_REPOSITORY}/actions/runs/{run_id}/artifacts?per_page=100", token
     )
     artifacts = artifacts_payload.get("artifacts")
-    if not isinstance(artifacts, list) or artifacts_payload.get("total_count") != 2:
+    if not isinstance(artifacts, list) or artifacts_payload.get("total_count") != 3:
         raise BoundaryError("source run artifact inventory differs")
     by_name = {item.get("name"): item for item in artifacts if isinstance(item, dict)}
     expected_names = {
         f"nytshift-android-unsigned-release-evidence-{commit}",
         f"nytshift-android-device-evidence-{commit}",
+        f"nytshift-PAPER-TEST-ONLY-DEBUG-SIGNED-NOT-PLAY-OR-PRODUCTION-NO-LIVE-CAPITAL-{commit}",
     }
     if set(by_name) != expected_names:
         raise BoundaryError("source run artifact names differ")

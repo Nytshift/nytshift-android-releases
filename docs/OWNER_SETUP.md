@@ -62,7 +62,7 @@ The source token principal must have access to the private source repository. Co
 
 ## 5. Final dry review before any dispatch
 
-- [ ] Confirm commit `34b977afc7435d7baccaf093581c4b6ed20d2587` is on source `main` and has one exact successful `android-ci` push run with exactly two green jobs/artifacts and inventories 338 JVM / 39 AndroidTest / 46 reviewed screenshots.
+- [ ] Confirm commit `61f837f304b3942f65cb3d99f1a4236bcd420e41` is on source `main` and review completed/successful `android-ci` push run `33493181731`: exactly two green jobs (`verify` `99809214893`, `device` `99814660114`), exactly three nonexpired artifact metadata records, and inventories 338 JVM / 39 AndroidTest / 46 reviewed screenshots. Confirm that only the unsigned release and device evidence artifacts may cross the signing boundary.
 - [ ] Review the commit diff, action/tool checksum provenance, environment settings, protection rule, token permission screens, certificate fingerprint, and exact source run.
 - [ ] Have the independent environment reviewer reject any dispatch whose commit/run or confirmation differs.
 - [ ] Dispatch only after every unchecked blocker above is complete, using an exact successful source `main` commit/run and confirmation `PAPER xyz.nytshift.app.staging`.

@@ -17,11 +17,12 @@ ROOT = Path(__file__).resolve().parents[1]
 POLICY_PATH = ROOT / "config/release-policy.json"
 WORKFLOW_PATH = ROOT / ".github/workflows/publish-paper-preview.yml"
 BOUNDARY_PATH = ROOT / "tools/signing_boundary_reference.py"
-BOUNDARY_SHA256 = "aec4cb3c1acf3075b55404f6abdec676a928da35abd958b132b5e7cf91ab0fef"
-REVIEWED_SOURCE_COMMIT = "34b977afc7435d7baccaf093581c4b6ed20d2587"
+BOUNDARY_SHA256 = "6e86b732a4e7fa6505837238e365c46c895e8a7b798e8c44bbe8da00b5e6bc44"
+REVIEWED_SOURCE_COMMIT = "61f837f304b3942f65cb3d99f1a4236bcd420e41"
 REVIEWED_SOURCE_VALIDATOR_SHA256 = (
     "7e1193b38d8588bbc9f7e2c1c5806008d4d18e3b3261deead27accdae53e4475"
 )
+DEBUG_ONLY_ARTIFACT_PREFIX = "nytshift-PAPER-TEST-ONLY-DEBUG-SIGNED-NOT-PLAY-OR-PRODUCTION-NO-LIVE-CAPITAL-"
 ACTION_PINS = {
     "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
     "actions/download-artifact": "018cc2cf5baa6db3ef3c5f8a56943fffe632ef53",
@@ -163,10 +164,14 @@ def verify_boundary(workflow: str) -> None:
         "normalize_reviewer",
         '"signingKeyOwner"',
         "source_commit != SOURCE_COMMIT",
+        'artifacts_payload.get("total_count") != 3',
+        f'f"{DEBUG_ONLY_ARTIFACT_PREFIX}{{commit}}"',
     )
     for value in required_boundary_contract:
         if value not in source:
             raise RepositoryError(f"signing boundary source/evidence contract is absent: {value}")
+    if source.count(DEBUG_ONLY_ARTIFACT_PREFIX) != 1:
+        raise RepositoryError("debug-only source artifact must be metadata-only and must not cross the signing boundary")
 
 
 def verify_workflow() -> None:
