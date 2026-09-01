@@ -58,6 +58,7 @@ class RepositorySafetyTests(unittest.TestCase):
             "ANDROID_PREVIEW_KEY_ALIAS",
             "ANDROID_PREVIEW_KEY_PASSWORD",
             "ANDROID_PREVIEW_CERTIFICATE_SHA256",
+            "ANDROID_PREVIEW_KEY_OWNER",
             "RELEASE_POLICY_READ_TOKEN",
             "Administration: read",
             "staging key custodian",

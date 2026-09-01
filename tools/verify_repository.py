@@ -17,10 +17,10 @@ ROOT = Path(__file__).resolve().parents[1]
 POLICY_PATH = ROOT / "config/release-policy.json"
 WORKFLOW_PATH = ROOT / ".github/workflows/publish-paper-preview.yml"
 BOUNDARY_PATH = ROOT / "tools/signing_boundary_reference.py"
-BOUNDARY_SHA256 = "ccaff059680da9a5d8011fd65bc019ac78f20f4966ee779e220366fb599c235e"
-REVIEWED_SOURCE_COMMIT = "681a1329de80fb54996bce54d814ec425a721a4c"
+BOUNDARY_SHA256 = "fad2c39fca8a40f5403c5ccee07e9d4a025124d9adccb402a2e17caebdf03a0c"
+REVIEWED_SOURCE_COMMIT = "c2a95bebb772d7d76db33df864de41fb231ff14c"
 REVIEWED_SOURCE_VALIDATOR_SHA256 = (
-    "6ce828bbb2ff8203f73314397f3a7d4d727381f460c84b5551f3f9df45ce365a"
+    "7e1193b38d8588bbc9f7e2c1c5806008d4d18e3b3261deead27accdae53e4475"
 )
 ACTION_PINS = {
     "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -99,6 +99,12 @@ def verify_policy() -> None:
             "branch": "main",
             "deviceApiLevel": 36,
             "deviceImage": "google_apis;x86_64",
+            "expectedEvidence": {
+                "androidTests": 39,
+                "jvmTests": 338,
+                "reviewedScreenshotReferences": 46,
+            },
+            "releaseCommit": REVIEWED_SOURCE_COMMIT,
             "repository": "Nytshift/nytshift-android",
             "workflowName": "android-ci",
             "workflowPath": ".github/workflows/ci.yml",
@@ -148,6 +154,19 @@ def verify_boundary(workflow: str) -> None:
         raise RepositoryError("signing boundary warning/decoded-manifest gates are missing")
     if "path.is_symlink()" not in source:
         raise RepositoryError("signing boundary symlink rejection is missing")
+    required_boundary_contract = (
+        f'SOURCE_COMMIT = "{REVIEWED_SOURCE_COMMIT}"',
+        "EXPECTED_JVM_TESTS = 338",
+        "EXPECTED_ANDROID_TESTS = 39",
+        "EXPECTED_SCREENSHOT_REFERENCES = 46",
+        '"reviewedScreenshotReferences": EXPECTED_SCREENSHOT_REFERENCES',
+        "normalize_reviewer",
+        '"signingKeyOwner"',
+        "source_commit != SOURCE_COMMIT",
+    )
+    for value in required_boundary_contract:
+        if value not in source:
+            raise RepositoryError(f"signing boundary source/evidence contract is absent: {value}")
 
 
 def verify_workflow() -> None:
@@ -193,6 +212,13 @@ def verify_workflow() -> None:
         raise RepositoryError("postpublish immutable release/asset verification is missing")
     if "isImmutable" not in blocks["postpublish"] or "EXPECTED_DOWNLOAD_URL" not in blocks["postpublish"]:
         raise RepositoryError("postpublish immutable/download metadata verification is missing")
+    if (
+        '"signingStatus": "signed"' not in blocks["postpublish"]
+        or '"unsignedPublicArtifactsAllowed": False' not in blocks["postpublish"]
+        or '"executionAuthority": "none"' not in blocks["postpublish"]
+        or '"reviewedScreenshotReferences": 46' not in blocks["postpublish"]
+    ):
+        raise RepositoryError("postpublish signed/authority/evidence metadata verification is missing")
 
     uses = re.findall(r"^\s*-?\s*uses:\s*([^@\s]+)@([^\s#]+)", workflow, re.MULTILINE)
     if not uses:
@@ -212,6 +238,12 @@ def verify_workflow() -> None:
         "Nytshift/nytshift-android",
         "Nytshift/nytshift-android-releases",
         "android-ci",
+        REVIEWED_SOURCE_COMMIT,
+        "ANDROID_PREVIEW_KEY_OWNER",
+        "prevent_self_review",
+        "deployment-branch-policies",
+        "--configured-reviewer",
+        "--key-owner",
         "python3 tools/release_gate.py verify-and-stage",
     )
     for value in required_contract:

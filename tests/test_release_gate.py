@@ -17,7 +17,7 @@ import release_gate as gate  # noqa: E402
 
 
 CERTIFICATE = "ab" * 32
-COMMIT = "1" * 40
+COMMIT = gate.EXPECTED_SOURCE_COMMIT
 PUBLIC_COMMIT = "2" * 40
 
 
@@ -54,7 +54,23 @@ def evidence() -> tuple[dict, dict]:
             "executionAuthority": "none",
         },
         "verification": {
-            "jvmTests": {"suites": 12, "tests": 198, "failures": 0, "errors": 0, "skipped": 0}
+            "androidTests": "compiled-not-executed-in-verify-job; see separate device evidence",
+            "jvmTests": {
+                "suites": 12,
+                "tests": gate.EXPECTED_JVM_TESTS,
+                "failures": 0,
+                "errors": 0,
+                "skipped": 0,
+            },
+            "productionLint": "passed-before-evidence-step",
+            "productionManifest": "verified-before-evidence-step",
+            "screenshotReferences": "validated-before-evidence-step",
+            "stagingManifest": "verified-before-evidence-step",
+        },
+        "inventory": {
+            "androidTestAnnotations": gate.EXPECTED_ANDROID_TESTS,
+            "jvmTestAnnotations": gate.EXPECTED_JVM_TESTS,
+            "reviewedScreenshotReferences": gate.EXPECTED_SCREENSHOT_REFERENCES,
         },
         "versionSource": {"expected": {"versionCode": 42, "versionName": "1.2.3"}},
         "variants": {
@@ -96,7 +112,7 @@ def evidence() -> tuple[dict, dict]:
             "stepOutcome": "success",
             "collectionError": None,
             "suites": 2,
-            "tests": 23,
+            "tests": gate.EXPECTED_ANDROID_TESTS,
             "failures": 0,
             "errors": 0,
             "skipped": 0,
@@ -140,6 +156,14 @@ def signer_output(certificate: str = CERTIFICATE) -> str:
 
 class EvidenceTests(unittest.TestCase):
     def test_exact_green_evidence_accepts_retained_device_diagnostics(self) -> None:
+        self.assertEqual(
+            (
+                gate.EXPECTED_JVM_TESTS,
+                gate.EXPECTED_ANDROID_TESTS,
+                gate.EXPECTED_SCREENSHOT_REFERENCES,
+            ),
+            (338, 39, 46),
+        )
         release, device = evidence()
         version_name, version_code, _, _ = gate.validate_evidence_summaries(release, device, COMMIT)
         self.assertEqual((version_name, version_code), ("1.2.3-staging", 42))
@@ -149,6 +173,22 @@ class EvidenceTests(unittest.TestCase):
         device["device"]["image"] = "default;x86_64"
         with self.assertRaises(gate.ReleaseGateError):
             gate.validate_evidence_summaries(release, device, COMMIT)
+
+    def test_stale_or_missing_inventory_fails(self) -> None:
+        for section, field, stale in (
+            ("verification", "jvmTests", None),
+            ("inventory", "jvmTestAnnotations", 337),
+            ("inventory", "androidTestAnnotations", 38),
+            ("inventory", "reviewedScreenshotReferences", 45),
+        ):
+            with self.subTest(section=section, field=field):
+                release, device = evidence()
+                if stale is None:
+                    release[section][field]["tests"] = 337
+                else:
+                    release[section][field] = stale
+                with self.assertRaises(gate.ReleaseGateError):
+                    gate.validate_evidence_summaries(release, device, COMMIT)
 
     def test_toolchain_revision_drift_fails(self) -> None:
         audited = toolchain()
@@ -283,6 +323,7 @@ class PackageAndStagingTests(unittest.TestCase):
                     "versionName": "1.2.3-staging",
                     "versionCode": 42,
                     "signingCertificateSha256": CERTIFICATE,
+                    "signingKeyOwner": "key-owner",
                 },
                 "source": {
                     "commitSha": COMMIT,
@@ -293,6 +334,8 @@ class PackageAndStagingTests(unittest.TestCase):
                 "publicPreparation": {
                     "repository": gate.EXPECTED_PUBLIC_REPOSITORY,
                     "commitSha": PUBLIC_COMMIT,
+                    "configuredEnvironmentReviewer": "user:release-reviewer",
+                    "signingKeyOwner": "key-owner",
                 },
             }
             tag, url = gate.stage_public_release(
@@ -313,6 +356,20 @@ class PackageAndStagingTests(unittest.TestCase):
             self.assertEqual(metadata["packageName"], gate.EXPECTED_PACKAGE)
             self.assertEqual(metadata["channel"], "PAPER")
             self.assertEqual(metadata["artifact"]["downloadUrl"], url)
+            self.assertEqual(metadata["artifact"]["signingStatus"], "signed")
+            self.assertNotIn("unsigned", metadata["artifact"]["fileName"].lower())
+            self.assertNotIn("unsigned", metadata["artifact"]["downloadUrl"].lower())
+            self.assertEqual(metadata["evidenceInventory"], {
+                "androidTests": 39,
+                "jvmTests": 338,
+                "reviewedScreenshotReferences": 46,
+            })
+            self.assertEqual(metadata["publicationPolicy"]["unsignedPublicArtifactsAllowed"], False)
+            self.assertEqual(provenance["authority"], {
+                "executionEnabled": False,
+                "allowMainnet": False,
+                "executionAuthority": "none",
+            })
             self.assertEqual(provenance["evidence"]["release"]["evidenceManifestSha256"], "5" * 64)
             gate.verify_checksum_package(output, gate.EXPECTED_RELEASE_INVENTORY)
 

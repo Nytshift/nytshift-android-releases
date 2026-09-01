@@ -82,6 +82,50 @@ class WorkflowContractTests(unittest.TestCase):
         reviewed = policy["source"]["reviewedValidator"]
         self.assertEqual(reviewed["commit"], verify.REVIEWED_SOURCE_COMMIT)
         self.assertEqual(reviewed["sha256"], verify.REVIEWED_SOURCE_VALIDATOR_SHA256)
+        self.assertEqual(reviewed["commit"], "c2a95bebb772d7d76db33df864de41fb231ff14c")
+        self.assertEqual(reviewed["sha256"], "7e1193b38d8588bbc9f7e2c1c5806008d4d18e3b3261deead27accdae53e4475")
+
+    def test_inline_boundary_requires_exact_source_and_evidence_inventory(self) -> None:
+        source = verify.BOUNDARY_PATH.read_text(encoding="utf-8")
+        for required in (
+            'SOURCE_COMMIT = "c2a95bebb772d7d76db33df864de41fb231ff14c"',
+            "EXPECTED_JVM_TESTS = 338",
+            "EXPECTED_ANDROID_TESTS = 39",
+            "EXPECTED_SCREENSHOT_REFERENCES = 46",
+            '"reviewedScreenshotReferences": EXPECTED_SCREENSHOT_REFERENCES',
+            'source_commit != SOURCE_COMMIT',
+        ):
+            self.assertIn(required, source)
+
+    def test_accountable_environment_and_owner_key_are_fail_closed(self) -> None:
+        preflight = verify.job_block(self.workflow, "preflight")
+        sign = verify.job_block(self.workflow, "sign")
+        stage = verify.job_block(self.workflow, "verify-and-stage")
+        for required in (
+            "prevent_self_review",
+            "one accountable user reviewer",
+            "ANDROID_PREVIEW_KEY_OWNER",
+            "deployment-branch-policies",
+            'reviewer == key_owner',
+        ):
+            self.assertIn(required, preflight)
+        self.assertIn("CONFIGURED_REVIEWER_IDENTITY", sign)
+        self.assertIn("KEY_OWNER_IDENTITY", sign)
+        self.assertIn("--configured-reviewer", stage)
+        self.assertIn("--key-owner", stage)
+
+    def test_postpublish_rejects_unsigned_or_live_metadata(self) -> None:
+        post = verify.job_block(self.workflow, "postpublish")
+        for required in (
+            '"signingStatus": "signed"',
+            '"unsignedPublicArtifactsAllowed": False',
+            '"executionEnabled": False',
+            '"allowMainnet": False',
+            '"executionAuthority": "none"',
+            '"isImmutable": True',
+            "gh release verify-asset",
+        ):
+            self.assertIn(required, post)
 
     def test_postpublish_verifies_release_and_every_asset(self) -> None:
         post = verify.job_block(self.workflow, "postpublish")
