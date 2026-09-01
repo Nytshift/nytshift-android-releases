@@ -7,6 +7,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 
@@ -155,6 +156,23 @@ def signer_output(certificate: str = CERTIFICATE) -> str:
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_superseded_source_commit_fails_before_handoff_access(self) -> None:
+        args = SimpleNamespace(
+            handoff=Path("handoff"),
+            output=Path("output"),
+            source_commit="c2a95bebb772d7d76db33df864de41fb231ff14c",
+            source_run_id="123",
+            public_commit=PUBLIC_COMMIT,
+            certificate_sha256=CERTIFICATE,
+            configured_reviewer="user:release-reviewer",
+            key_owner="key-owner",
+            public_repository=gate.EXPECTED_PUBLIC_REPOSITORY,
+        )
+        with mock.patch.object(gate, "read_json") as read_json:
+            with self.assertRaisesRegex(gate.ReleaseGateError, "source or public commit is malformed"):
+                gate.verify_and_stage(args)
+        read_json.assert_not_called()
+
     def test_exact_green_evidence_accepts_retained_device_diagnostics(self) -> None:
         self.assertEqual(
             (

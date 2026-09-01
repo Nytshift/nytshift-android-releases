@@ -14,7 +14,7 @@ Every job uses a fresh GitHub-hosted runner. Artifacts, not a shared workspace, 
 
 ## Fail-closed candidate
 
-The candidate is accepted only when all layers agree on source commit `c2a95bebb772d7d76db33df864de41fb231ff14c`, package `xyz.nytshift.app.staging`, variant `stagingRelease`, channel `PAPER`, non-debug status, execution disabled, mainnet disallowed, and authority `none`. Source evidence must report exactly 338 green JVM tests, 39 green API-36 Android tests, and 46 reviewed screenshot references. The emulator SDK inventory must match the exact audited components/revisions and source-property hashes, and the BuildConfig constants must repeat the same authority.
+The candidate is accepted only when all layers agree on source commit `158a69fb7728fcefb605c401c1a25fd61bbf2fed`, package `xyz.nytshift.app.staging`, variant `stagingRelease`, channel `PAPER`, non-debug status, execution disabled, mainnet disallowed, and authority `none`. Source evidence must report exactly 338 green JVM tests, 39 green API-36 Android tests, and 46 reviewed screenshot references. The emulator SDK inventory must match the exact audited components/revisions and source-property hashes, and the BuildConfig constants must repeat the same authority.
 
 The final signed APK is independently checked with pinned `aapt2`, `apkanalyzer`, and `apksigner`. The verifier requires the exact permission and exported-component allowlists, FileProvider authority, min/target SDK bounds, one expected signing certificate, v1 disabled, v2/v3 enabled, `--Werr`, and byte-identical ZIP payload entries between unsigned and signed APKs.
 

@@ -17,8 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 POLICY_PATH = ROOT / "config/release-policy.json"
 WORKFLOW_PATH = ROOT / ".github/workflows/publish-paper-preview.yml"
 BOUNDARY_PATH = ROOT / "tools/signing_boundary_reference.py"
-BOUNDARY_SHA256 = "fad2c39fca8a40f5403c5ccee07e9d4a025124d9adccb402a2e17caebdf03a0c"
-REVIEWED_SOURCE_COMMIT = "c2a95bebb772d7d76db33df864de41fb231ff14c"
+BOUNDARY_SHA256 = "e55db1e6c3b82b0efeb24e1423777dbc612c157315dc9a027e8afdb6f7f8d37b"
+REVIEWED_SOURCE_COMMIT = "158a69fb7728fcefb605c401c1a25fd61bbf2fed"
 REVIEWED_SOURCE_VALIDATOR_SHA256 = (
     "7e1193b38d8588bbc9f7e2c1c5806008d4d18e3b3261deead27accdae53e4475"
 )
