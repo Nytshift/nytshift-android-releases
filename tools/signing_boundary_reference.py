@@ -29,8 +29,12 @@ SOURCE_REPOSITORY = "Nytshift/nytshift-android"
 SOURCE_BRANCH = "main"
 SOURCE_WORKFLOW = "android-ci"
 SOURCE_WORKFLOW_PATH = ".github/workflows/ci.yml"
+SOURCE_COMMIT = "61f837f304b3942f65cb3d99f1a4236bcd420e41"
 PUBLIC_REPOSITORY = "Nytshift/nytshift-android-releases"
 PACKAGE = "xyz.nytshift.app.staging"
+EXPECTED_JVM_TESTS = 338
+EXPECTED_ANDROID_TESTS = 39
+EXPECTED_SCREENSHOT_REFERENCES = 46
 ANDROID = "{http://schemas.android.com/apk/res/android}"
 EXPECTED_PERMISSIONS = {
     "android.permission.ACCESS_NETWORK_STATE",
@@ -48,6 +52,7 @@ EXPECTED_DEVICE_COMPONENTS = {
 }
 SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 COMMIT_RE = re.compile(r"^[a-f0-9]{40}$")
+LOGIN_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
 VERSION_RE = re.compile(r"^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$")
 CERTIFICATE_RE = re.compile(
     r"^Signer #(\d+) certificate SHA-256 digest: ([0-9A-Fa-f:]{64,95})$", re.MULTILINE
@@ -308,7 +313,16 @@ def validate_evidence(
         raise BoundaryError("release evidence is not the exact fail-closed source candidate")
     expected_version = release.get("versionSource", {}).get("expected")
     staging = release.get("variants", {}).get("stagingRelease")
-    tests = release.get("verification", {}).get("jvmTests")
+    verification = release.get("verification")
+    tests = verification.get("jvmTests") if isinstance(verification, dict) else None
+    expected_verification = {
+        "androidTests": "compiled-not-executed-in-verify-job; see separate device evidence",
+        "jvmTests": tests,
+        "productionLint": "passed-before-evidence-step",
+        "productionManifest": "verified-before-evidence-step",
+        "screenshotReferences": "validated-before-evidence-step",
+        "stagingManifest": "verified-before-evidence-step",
+    }
     if (
         not isinstance(expected_version, dict)
         or not isinstance(staging, dict)
@@ -316,8 +330,15 @@ def validate_evidence(
         or set(tests) != {"suites", "tests", "failures", "errors", "skipped"}
         or not isinstance(tests.get("suites"), int)
         or tests["suites"] < 1
-        or tests.get("tests") != 198
+        or tests.get("tests") != EXPECTED_JVM_TESTS
         or any(tests.get(field) != 0 for field in ("failures", "errors", "skipped"))
+        or verification != expected_verification
+        or release.get("inventory")
+        != {
+            "androidTestAnnotations": EXPECTED_ANDROID_TESTS,
+            "jvmTestAnnotations": EXPECTED_JVM_TESTS,
+            "reviewedScreenshotReferences": EXPECTED_SCREENSHOT_REFERENCES,
+        }
     ):
         raise BoundaryError("release JVM evidence is incomplete or failed")
     version_code = expected_version.get("versionCode")
@@ -355,7 +376,7 @@ def validate_evidence(
             "stepOutcome": "success",
             "collectionError": None,
             "suites": android_tests.get("suites"),
-            "tests": 23,
+            "tests": EXPECTED_ANDROID_TESTS,
             "failures": 0,
             "errors": 0,
             "skipped": 0,
@@ -511,6 +532,20 @@ def normalize_certificate(raw: str) -> str:
     return value
 
 
+def normalize_login(raw: str) -> str:
+    value = raw.strip().lower()
+    if not LOGIN_RE.fullmatch(value):
+        raise BoundaryError("accountable GitHub login is malformed")
+    return value
+
+
+def normalize_reviewer(raw: str) -> str:
+    prefix, separator, login = raw.strip().partition(":")
+    if separator != ":" or prefix.lower() != "user":
+        raise BoundaryError("configured environment reviewer must be one exact user")
+    return f"user:{normalize_login(login)}"
+
+
 def verify_signature(apksigner: Path, apk: Path, expected_certificate: str) -> str:
     process = run(
         [
@@ -540,6 +575,8 @@ def verify_signature(apksigner: Path, apk: Path, expected_certificate: str) -> s
 
 
 def validate_source_run(token: str, commit: str, run_id: int) -> tuple[dict[str, Any], dict[str, Any]]:
+    if commit != SOURCE_COMMIT:
+        raise BoundaryError("source commit differs from the fixed reviewed release candidate")
     run_payload = api_json(f"/repos/{SOURCE_REPOSITORY}/actions/runs/{run_id}", token)
     if (
         run_payload.get("name") != SOURCE_WORKFLOW
@@ -572,12 +609,13 @@ def validate_source_run(token: str, commit: str, run_id: int) -> tuple[dict[str,
         f"/repos/{SOURCE_REPOSITORY}/actions/runs/{run_id}/artifacts?per_page=100", token
     )
     artifacts = artifacts_payload.get("artifacts")
-    if not isinstance(artifacts, list) or artifacts_payload.get("total_count") != 2:
+    if not isinstance(artifacts, list) or artifacts_payload.get("total_count") != 3:
         raise BoundaryError("source run artifact inventory differs")
     by_name = {item.get("name"): item for item in artifacts if isinstance(item, dict)}
     expected_names = {
         f"nytshift-android-unsigned-release-evidence-{commit}",
         f"nytshift-android-device-evidence-{commit}",
+        f"nytshift-PAPER-TEST-ONLY-DEBUG-SIGNED-NOT-PLAY-OR-PRODUCTION-NO-LIVE-CAPITAL-{commit}",
     }
     if set(by_name) != expected_names:
         raise BoundaryError("source run artifact names differ")
@@ -627,7 +665,15 @@ def main() -> None:
     public_commit = os.environ["PUBLIC_COMMIT"].lower()
     public_run_raw = os.environ["PUBLIC_RUN_ID"]
     certificate = normalize_certificate(os.environ["EXPECTED_CERTIFICATE_SHA256"])
-    if not token or not COMMIT_RE.fullmatch(source_commit) or not COMMIT_RE.fullmatch(public_commit):
+    key_owner = normalize_login(os.environ["KEY_OWNER_IDENTITY"])
+    configured_reviewer = normalize_reviewer(os.environ["CONFIGURED_REVIEWER_IDENTITY"])
+    if configured_reviewer == f"user:{key_owner}":
+        raise BoundaryError("signing key owner and environment reviewer must be independent")
+    if (
+        not token
+        or source_commit != SOURCE_COMMIT
+        or not COMMIT_RE.fullmatch(public_commit)
+    ):
         raise BoundaryError("token or commit input is missing/malformed")
     if not source_run_raw.isascii() or not source_run_raw.isdigit() or not public_run_raw.isdigit():
         raise BoundaryError("workflow run identity is malformed")
@@ -745,6 +791,7 @@ def main() -> None:
             "channel": "PAPER",
             "debuggable": False,
             "packageName": PACKAGE,
+            "signingKeyOwner": key_owner,
             "signedApk": {
                 "bytes": signed.stat().st_size,
                 "fileName": signed.name,
@@ -766,6 +813,8 @@ def main() -> None:
             "commitSha": public_commit,
             "commitUrl": f"https://github.com/{PUBLIC_REPOSITORY}/commit/{public_commit}",
             "repository": PUBLIC_REPOSITORY,
+            "configuredEnvironmentReviewer": configured_reviewer,
+            "signingKeyOwner": key_owner,
             "workflowRunId": public_run_id,
             "workflowRunUrl": f"https://github.com/{PUBLIC_REPOSITORY}/actions/runs/{public_run_id}",
         },
@@ -799,7 +848,7 @@ def main() -> None:
         raise BoundaryError("signing handoff allowlist differs")
     print(
         f"signing handoff staged: source={source_commit} run={source_run_id} "
-        f"version={version_name} certificate={actual_certificate}"
+        f"version={version_name} certificate={actual_certificate} reviewer={configured_reviewer}"
     )
 
 

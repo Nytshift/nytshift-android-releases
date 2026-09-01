@@ -27,9 +27,13 @@ EXPECTED_PUBLIC_REPOSITORY = "Nytshift/nytshift-android-releases"
 EXPECTED_SOURCE_BRANCH = "main"
 EXPECTED_SOURCE_WORKFLOW = "android-ci"
 EXPECTED_SOURCE_WORKFLOW_PATH = ".github/workflows/ci.yml"
+EXPECTED_SOURCE_COMMIT = "61f837f304b3942f65cb3d99f1a4236bcd420e41"
 EXPECTED_PACKAGE = "xyz.nytshift.app.staging"
 EXPECTED_VARIANT = "stagingRelease"
 EXPECTED_CHANNEL = "PAPER"
+EXPECTED_JVM_TESTS = 338
+EXPECTED_ANDROID_TESTS = 39
+EXPECTED_SCREENSHOT_REFERENCES = 46
 EXPECTED_DEVICE_API = 36
 EXPECTED_DEVICE_IMAGE = "google_apis;x86_64"
 SIGNED_APK_NAME = "nytshift-staging-release-signed.apk"
@@ -60,6 +64,7 @@ EXPECTED_DEVICE_COMPONENTS = {
 SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 COMMIT_RE = re.compile(r"^[a-f0-9]{40}$")
 RUN_ID_RE = re.compile(r"^[1-9][0-9]{0,19}$")
+LOGIN_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
 VERSION_RE = re.compile(r"^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)-staging$")
 CERTIFICATE_RE = re.compile(
     r"^Signer #(\d+) certificate SHA-256 digest: ([0-9A-Fa-f:]{64,95})$",
@@ -117,6 +122,20 @@ def normalize_certificate(raw: str) -> str:
     if not SHA256_RE.fullmatch(value):
         raise ReleaseGateError("signing certificate SHA-256 is malformed")
     return value
+
+
+def normalize_login(raw: str) -> str:
+    value = raw.strip().lower()
+    if not LOGIN_RE.fullmatch(value):
+        raise ReleaseGateError("accountable GitHub login is malformed")
+    return value
+
+
+def normalize_reviewer(raw: str) -> str:
+    prefix, separator, login = raw.strip().partition(":")
+    if separator != ":" or prefix.lower() != "user":
+        raise ReleaseGateError("configured environment reviewer must be one exact user")
+    return f"user:{normalize_login(login)}"
 
 
 def safe_relative_path(raw: str) -> str:
@@ -211,7 +230,12 @@ def _exact_source(source: Any, commit: str) -> bool:
     }
 
 
-def _green_test_summary(value: Any, *, step_outcome: bool = False) -> bool:
+def _green_test_summary(
+    value: Any,
+    *,
+    expected_tests: int,
+    step_outcome: bool = False,
+) -> bool:
     if not isinstance(value, dict):
         return False
     expected_keys = {"suites", "tests", "failures", "errors", "skipped"}
@@ -221,7 +245,6 @@ def _green_test_summary(value: Any, *, step_outcome: bool = False) -> bool:
         return False
     if step_outcome and (value.get("stepOutcome") != "success" or value.get("collectionError") is not None):
         return False
-    expected_tests = 23 if step_outcome else 198
     return (
         isinstance(value.get("suites"), int)
         and value["suites"] > 0
@@ -270,7 +293,27 @@ def validate_evidence_summaries(
     verification = release.get("verification")
     variants = release.get("variants")
     version_source = release.get("versionSource")
-    if not isinstance(verification, dict) or not _green_test_summary(verification.get("jvmTests")):
+    expected_verification = {
+        "androidTests": "compiled-not-executed-in-verify-job; see separate device evidence",
+        "jvmTests": verification.get("jvmTests") if isinstance(verification, dict) else None,
+        "productionLint": "passed-before-evidence-step",
+        "productionManifest": "verified-before-evidence-step",
+        "screenshotReferences": "validated-before-evidence-step",
+        "stagingManifest": "verified-before-evidence-step",
+    }
+    if (
+        not isinstance(verification, dict)
+        or verification != expected_verification
+        or not _green_test_summary(
+            verification.get("jvmTests"), expected_tests=EXPECTED_JVM_TESTS
+        )
+        or release.get("inventory")
+        != {
+            "androidTestAnnotations": EXPECTED_ANDROID_TESTS,
+            "jvmTestAnnotations": EXPECTED_JVM_TESTS,
+            "reviewedScreenshotReferences": EXPECTED_SCREENSHOT_REFERENCES,
+        }
+    ):
         raise ReleaseGateError("release evidence does not contain a green JVM test summary")
     if not isinstance(variants, dict) or not isinstance(version_source, dict):
         raise ReleaseGateError("release evidence version or variant contract is incomplete")
@@ -303,7 +346,11 @@ def validate_evidence_summaries(
         or not isinstance(device.get("device"), dict)
         or device["device"].get("apiLevel") != EXPECTED_DEVICE_API
         or device["device"].get("image") != EXPECTED_DEVICE_IMAGE
-        or not _green_test_summary(device.get("androidTest"), step_outcome=True)
+        or not _green_test_summary(
+            device.get("androidTest"),
+            expected_tests=EXPECTED_ANDROID_TESTS,
+            step_outcome=True,
+        )
         or device.get("toolchain") != toolchain
     ):
         raise ReleaseGateError("device evidence is not an exact green API-36 run")
@@ -555,6 +602,8 @@ def validate_handoff_provenance(
     public_repository: str,
     public_commit: str,
     certificate: str,
+    configured_reviewer: str,
+    key_owner: str,
 ) -> None:
     if (
         handoff.get("schemaVersion") != "1"
@@ -583,6 +632,8 @@ def validate_handoff_provenance(
         or public.get("repository") != public_repository
         or public.get("commitSha") != public_commit
         or public.get("commitUrl") != f"https://github.com/{public_repository}/commit/{public_commit}"
+        or public.get("configuredEnvironmentReviewer") != configured_reviewer
+        or public.get("signingKeyOwner") != key_owner
         or not isinstance(public.get("workflowRunId"), int)
         or public.get("workflowRunId", 0) < 1
         or public.get("workflowRunUrl")
@@ -605,6 +656,8 @@ def validate_handoff_provenance(
             or value["id"] < 1
             or not SHA256_RE.fullmatch(str(value.get("archiveSha256", "")))
             or not SHA256_RE.fullmatch(str(value.get("artifactDigest", "")).removeprefix("sha256:"))
+            or value.get("archiveSha256")
+            != str(value.get("artifactDigest", "")).removeprefix("sha256:")
             or not SHA256_RE.fullmatch(str(value.get("evidenceManifestSha256", "")))
             or not SHA256_RE.fullmatch(str(value.get("checksumManifestSha256", "")))
             or not isinstance(value.get("packageInventoryCount"), int)
@@ -624,6 +677,7 @@ def validate_handoff_provenance(
         or candidate.get("channel") != EXPECTED_CHANNEL
         or candidate.get("debuggable") is not False
         or candidate.get("packageName") != EXPECTED_PACKAGE
+        or candidate.get("signingKeyOwner") != key_owner
         or normalize_certificate(str(candidate.get("signingCertificateSha256", ""))) != certificate
     ):
         raise ReleaseGateError("signing handoff candidate is not exact and fail-closed")
@@ -698,13 +752,30 @@ def stage_public_release(
             "downloadUrl": download_url,
             "fileName": PUBLIC_APK_NAME,
             "sha256": apk_digest,
+            "signingStatus": "signed",
+        },
+        "accountability": {
+            "configuredEnvironmentReviewer": handoff["publicPreparation"][
+                "configuredEnvironmentReviewer"
+            ],
+            "signingKeyOwner": candidate["signingKeyOwner"],
         },
         "buildVariant": EXPECTED_VARIANT,
         "channel": EXPECTED_CHANNEL,
         "debuggable": False,
+        "evidenceInventory": {
+            "androidTests": EXPECTED_ANDROID_TESTS,
+            "jvmTests": EXPECTED_JVM_TESTS,
+            "reviewedScreenshotReferences": EXPECTED_SCREENSHOT_REFERENCES,
+        },
         "packageName": EXPECTED_PACKAGE,
         "platform": "android",
         "preparedAt": prepared_at,
+        "publicationPolicy": {
+            "immutableReleaseRequired": True,
+            "postPublicationVerificationRequired": True,
+            "unsignedPublicArtifactsAllowed": False,
+        },
         "publicRelease": {
             "repository": public_repository,
             "releaseUrl": release_url,
@@ -722,14 +793,17 @@ def stage_public_release(
         "versionName": version_name,
     }
     provenance = {
+        "accountability": metadata["accountability"],
         "authority": candidate["authority"],
         "candidate": {
             "apkSha256": apk_digest,
             "certificateSha256": certificate,
             "packageName": EXPECTED_PACKAGE,
+            "signingStatus": "signed",
             "versionCode": version_code,
             "versionName": version_name,
         },
+        "evidenceInventory": metadata["evidenceInventory"],
         "evidence": {
             "device": handoff["sourceArtifacts"]["device"],
             "release": handoff["sourceArtifacts"]["release"],
@@ -757,6 +831,8 @@ def stage_public_release(
         "apk": apk_digest,
         "certificate": certificate,
         "download": download_url,
+        "key_owner": candidate["signingKeyOwner"],
+        "reviewer": handoff["publicPreparation"]["configuredEnvironmentReviewer"],
     }.items()}
     (output / "release-notes.md").write_text(
         "# NYTSHIFT Android PAPER preview\n\n"
@@ -769,6 +845,11 @@ def stage_public_release(
         f"- Green source run: [Actions run]({escaped['source_run']})\n"
         f"- APK SHA-256: `{escaped['apk']}`\n"
         f"- Certificate SHA-256: `{escaped['certificate']}`\n"
+        f"- Signing key owner: `{escaped['key_owner']}`\n"
+        f"- Configured environment reviewer: `{escaped['reviewer']}`\n"
+        f"- Verified evidence inventory: `{EXPECTED_JVM_TESTS}` JVM / "
+        f"`{EXPECTED_ANDROID_TESTS}` AndroidTest / "
+        f"`{EXPECTED_SCREENSHOT_REFERENCES}` reviewed screenshots\n"
         f"- Immutable public download: {escaped['download']}\n\n"
         "Verify the checksum, certificate, immutable release attestation, and package name before installation.\n",
         encoding="utf-8",
@@ -791,9 +872,13 @@ def verify_and_stage(args: argparse.Namespace) -> int:
     source_run_id = str(args.source_run_id)
     public_commit = args.public_commit.lower()
     certificate = normalize_certificate(args.certificate_sha256)
+    configured_reviewer = normalize_reviewer(args.configured_reviewer)
+    key_owner = normalize_login(args.key_owner)
+    if configured_reviewer == f"user:{key_owner}":
+        raise ReleaseGateError("signing key owner and environment reviewer must be independent")
     if args.public_repository != EXPECTED_PUBLIC_REPOSITORY:
         raise ReleaseGateError("public repository identity differs from the fixed policy")
-    if not COMMIT_RE.fullmatch(source_commit) or not COMMIT_RE.fullmatch(public_commit):
+    if source_commit != EXPECTED_SOURCE_COMMIT or not COMMIT_RE.fullmatch(public_commit):
         raise ReleaseGateError("source or public commit is malformed")
     if not RUN_ID_RE.fullmatch(source_run_id):
         raise ReleaseGateError("source run id is malformed")
@@ -806,6 +891,8 @@ def verify_and_stage(args: argparse.Namespace) -> int:
         public_repository=args.public_repository,
         public_commit=public_commit,
         certificate=certificate,
+        configured_reviewer=configured_reviewer,
+        key_owner=key_owner,
     )
     release = read_json(handoff_root / RELEASE_EVIDENCE_NAME)
     device = read_json(handoff_root / DEVICE_EVIDENCE_NAME)
@@ -870,6 +957,8 @@ def build_parser() -> argparse.ArgumentParser:
     verify.add_argument("--apkanalyzer", required=True, type=Path)
     verify.add_argument("--apksigner", required=True, type=Path)
     verify.add_argument("--certificate-sha256", required=True)
+    verify.add_argument("--configured-reviewer", required=True)
+    verify.add_argument("--key-owner", required=True)
     verify.add_argument("--source-commit", required=True)
     verify.add_argument("--source-run-id", required=True)
     verify.add_argument("--public-repository", required=True)

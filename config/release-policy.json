@@ -9,13 +9,19 @@
     "branch": "main",
     "deviceApiLevel": 36,
     "deviceImage": "google_apis;x86_64",
+    "expectedEvidence": {
+      "androidTests": 39,
+      "jvmTests": 338,
+      "reviewedScreenshotReferences": 46
+    },
+    "releaseCommit": "61f837f304b3942f65cb3d99f1a4236bcd420e41",
     "repository": "Nytshift/nytshift-android",
     "workflowName": "android-ci",
     "workflowPath": ".github/workflows/ci.yml",
     "reviewedValidator": {
-      "commit": "681a1329de80fb54996bce54d814ec425a721a4c",
+      "commit": "61f837f304b3942f65cb3d99f1a4236bcd420e41",
       "path": "stage_signed_preview_release.py",
-      "sha256": "6ce828bbb2ff8203f73314397f3a7d4d727381f460c84b5551f3f9df45ce365a"
+      "sha256": "7e1193b38d8588bbc9f7e2c1c5806008d4d18e3b3261deead27accdae53e4475"
     }
   }
 }

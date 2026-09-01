@@ -3,7 +3,7 @@
 ## Before dispatch
 
 1. Confirm owner setup is complete and independently reviewed.
-2. In the private source repository, identify a successful `android-ci` **push** run on `main`. Copy its exact 40-character `head_sha` and numeric run ID. Do not use a pull-request run, rerun against another SHA, or manually assembled artifact.
+2. In the private source repository, confirm `61f837f304b3942f65cb3d99f1a4236bcd420e41` has completed/successful `android-ci` **push** run `33493181731` on `main`. Do not use a pull-request run, another SHA, or a manually assembled artifact. The run must have exactly two green jobs, exactly three nonexpired artifact metadata records, and prove 338 JVM tests, 39 Android tests, and 46 reviewed screenshot references. The public boundary must download only the unsigned release and device evidence artifacts, never the test-only debug-signed artifact.
 3. Review the source commit, evidence/artifact availability, public release-repository commit, tool pins, and certificate fingerprint.
 4. Start `android-paper-preview-release` from public `main` with the exact source commit/run and confirmation `PAPER xyz.nytshift.app.staging`.
 5. The required environment reviewer compares the inputs and source run before approving the `sign` job. Approval is not evidence that the rest of the run passed.

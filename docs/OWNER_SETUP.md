@@ -18,16 +18,16 @@ Status recorded 2026-08-31. Checked items are limited to settings that the owner
 
 ## 2. Create the protected signing environment
 
-**Blocked: do not create this environment until at least one independent reviewer identity is known.** After that identity is confirmed, create environment `android-paper-preview-signing` and configure:
+**Blocked: do not create this environment until one independent, accountable GitHub user reviewer identity is known.** After that identity is confirmed, create environment `android-paper-preview-signing` and configure:
 
-- at least one independent required reviewer;
+- exactly one independent required user reviewer, different from the dispatcher and signing-key owner;
 - “prevent self-review” where available;
 - deployment branch/tag restriction admitting only `main` for this workflow;
 - no custom deployment app that can silently bypass the human gate.
 
 All environment controls and secrets below remain incomplete:
 
-- [ ] Add at least one independent required reviewer.
+- [ ] Add exactly one independent required user reviewer and record the identity in the owner’s audit record.
 - [ ] Enable “prevent self-review” where available.
 - [ ] Restrict deployment to `main` for this workflow.
 - [ ] Confirm no custom deployment app can silently bypass the human gate.
@@ -46,6 +46,8 @@ The source token principal must have access to the private source repository. Co
 
 ## 3. Configure independent public checks
 
+- [ ] Add repository variable `ANDROID_PREVIEW_KEY_OWNER` containing the accountable GitHub login of the staging-key owner/custodian. It must differ from the configured environment reviewer. This remains absent.
+
 - [ ] Add repository variable `ANDROID_PREVIEW_CERTIFICATE_SHA256` containing the normalized SHA-256 fingerprint of the dedicated staging signing certificate. This remains absent. Obtain and cross-check it through the key custodian’s offline process; it must not be derived from an unreviewed workflow output.
 
 - [ ] Add repository secret `RELEASE_POLICY_READ_TOKEN`: a fine-grained, short-lived/rotated token limited to `Nytshift/nytshift-android-releases` with **Administration: read** and metadata read, and no write permission. This remains absent. It exists only because the immutable-release settings endpoint requires repository Administration read. The preflight job is otherwise read-only and never forwards this token.
@@ -60,6 +62,7 @@ The source token principal must have access to the private source repository. Co
 
 ## 5. Final dry review before any dispatch
 
+- [ ] Confirm commit `61f837f304b3942f65cb3d99f1a4236bcd420e41` is on source `main` and review completed/successful `android-ci` push run `33493181731`: exactly two green jobs (`verify` `99809214893`, `device` `99814660114`), exactly three nonexpired artifact metadata records, and inventories 338 JVM / 39 AndroidTest / 46 reviewed screenshots. Confirm that only the unsigned release and device evidence artifacts may cross the signing boundary.
 - [ ] Review the commit diff, action/tool checksum provenance, environment settings, protection rule, token permission screens, certificate fingerprint, and exact source run.
 - [ ] Have the independent environment reviewer reject any dispatch whose commit/run or confirmation differs.
 - [ ] Dispatch only after every unchecked blocker above is complete, using an exact successful source `main` commit/run and confirmation `PAPER xyz.nytshift.app.staging`.
